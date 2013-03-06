@@ -26,6 +26,7 @@
 												},
 												update: function(event, ui) {
 													var dataRows=[];
+													var dataSortedItems=[];
 													var gridItems=gridField.getItems();
 													var button=refCheckbox.parent().find('.sortablerows-toggle');
 													
@@ -33,7 +34,13 @@
 													for(var i=0;i<gridItems.length;i++) {
 														dataRows[i]=$(gridItems[i]).data('id');
 													}
-													
+
+													for(var i=0;i<gridItems.length;i++) {
+														dataSortedItems[i]={
+															'ClassName': $(gridItems[i]).data('class'),
+															'ID': $(gridItems[i]).data('id')
+														};
+													}
 													
 													self._makeRequest({data: [
 																				{
@@ -43,6 +50,10 @@
 																				{
 																					name: 'ItemIDs',
 																					value: dataRows
+																				},
+																				{
+																					name: 'SortedItems',
+																					value: JSON.stringify(dataSortedItems)
 																				}
 																			]});
 												}
@@ -101,7 +112,7 @@
 				var button=$(this).parent().find('.sortablerows-disablepagenator');
 				gridField.reload({data: [{name: button.attr('name'), value: button.val()}]});
 			},
-			
+
 			_makeRequest: function(ajaxOpts, callback) {
 				var gridField=this.getGridField();
 				var form = gridField.closest('form'), 

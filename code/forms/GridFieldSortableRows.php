@@ -122,15 +122,20 @@ class GridFieldSortableRows implements GridField_HTMLProvider, GridField_ActionP
 		if(class_exists('UnsavedRelationList') && $dataList instanceof UnsavedRelationList) {
 			return;
 		}
-		
+
 		$list=clone $dataList;
-		$list=$list->alterDataQuery(function($query, SS_List $tmplist) {
-			$query->limit(array());
-			return $query;
-		});
+		$array_list = ($list instanceof ArrayList);
+		
+		if (!$array_list)
+		{			
+			$list=$list->alterDataQuery(function($query, SS_List $tmplist) {
+				$query->limit(array());
+				return $query;
+			});
+		}
 		
 		$many_many = ($list instanceof ManyManyList);
-		if (!$many_many) {
+		if (!$many_many && !$array_list) {
 			$sng=singleton($gridField->getModelClass());
 			$fieldType=$sng->db($this->sortColumn);
 			if(!$fieldType || !($fieldType=='Int' || is_subclass_of('Int', $fieldType))) {
@@ -139,9 +144,18 @@ class GridFieldSortableRows implements GridField_HTMLProvider, GridField_ActionP
 			}
 		}
 		
+
+		if (!$array_list)
+		{
+			$max = $list->Max($this->sortColumn);
+			$list=$list->where('"'.$this->sortColumn.'"=0');
+		}
+		else{
+			$max = max( $list->column($this->sortColumn) );
+			$list=$list->filter($this->sortColumn, 0);
+		}
 		
-		$max = $list->Max($this->sortColumn);
-		$list=$list->where('"'.$this->sortColumn.'"=0');
+
 		if($list->Count()>0) {
 			$owner = $gridField->Form->getRecord();
 			$sortColumn = $this->sortColumn;
@@ -155,7 +169,7 @@ class GridFieldSortableRows implements GridField_HTMLProvider, GridField_ActionP
 					user_error('Sort column '.$this->sortColumn.' must be an Int, column is of type '.$fieldType, E_USER_ERROR);
 					exit;
 				}
-			}else {
+			}else if (!$array_list) {
 				//Find table containing the sort column
 				$table=false;
 				$class=$gridField->getModelClass();
@@ -192,7 +206,12 @@ class GridFieldSortableRows implements GridField_HTMLProvider, GridField_ActionP
 					DB::query('UPDATE "' . $table
 							. '" SET "' . $sortColumn .'" = ' . ($max + $i)
 							. ' WHERE "' . $componentField . '" = ' . $obj->ID . ' AND "' . $parentField . '" = ' . $owner->ID);
-				}else {
+				}
+				else if ($array_list) {
+					$obj->setField( $sortColumn, ($max + $i) );
+					$obj->write();
+				}
+				else {
 					DB::query('UPDATE "' . $table
 							. '" SET "' . $sortColumn . '" = ' . ($max + $i)
 							. ' WHERE "ID" = '. $obj->ID);
@@ -267,6 +286,7 @@ class GridFieldSortableRows implements GridField_HTMLProvider, GridField_ActionP
 		$owner = $gridField->Form->getRecord();
 		$items = clone $gridField->getList();
 		$many_many = ($items instanceof ManyManyList);
+		$array_list = ($items instanceof ArrayList);
 		$sortColumn = $this->sortColumn;
 		$pageOffset = 0;
 		
@@ -281,7 +301,7 @@ class GridFieldSortableRows implements GridField_HTMLProvider, GridField_ActionP
 		
 		if ($many_many) {
 			list($parentClass, $componentClass, $parentField, $componentField, $table) = $owner->many_many($gridField->getName());
-		}else {
+		}else if (!$array_list) {
 			//Find table containing the sort column
 			$table=false;
 			$class=$gridField->getModelClass();			
@@ -307,19 +327,30 @@ class GridFieldSortableRows implements GridField_HTMLProvider, GridField_ActionP
 		
 		
 		//Start transaction if supported
-		if(DB::getConn()->supportsTransactions()) {
+		if(DB::getConn()->supportsTransactions() && !$array_list) {
 			DB::getConn()->transactionStart();
 		}
 		
 		
 		$ids = explode(',', $data['ItemIDs']);
+		$idsMap = json_decode( $data['SortedItems'] );
 		for($sort = 0;$sort<count($ids);$sort++) {
 			$id = intval($ids[$sort]);
 			if ($many_many) {
 				DB::query('UPDATE "' . $table
 						. '" SET "' . $sortColumn.'" = ' . (($sort + 1) + $pageOffset)
 						. ' WHERE "' . $componentField . '" = ' . $id . ' AND "' . $parentField . '" = ' . $owner->ID);
-			} else {
+			}
+			else if ($array_list) {
+				$obj = $items->filter(array(
+          'CLassName' => $idsMap[$sort]->ClassName,
+          'ID'        => $idsMap[$sort]->ID
+				))->shift();
+
+				$obj->setField( $sortColumn, (($sort + 1) + $pageOffset) );
+				$obj->write();
+			}
+			else {
 				DB::query('UPDATE "' . $table
 						. '" SET "' . $sortColumn . '" = ' . (($sort + 1) + $pageOffset)
 						. ' WHERE "ID" = '. $id);
@@ -327,7 +358,7 @@ class GridFieldSortableRows implements GridField_HTMLProvider, GridField_ActionP
 		}
 		
 		//End transaction if supported
-		if(DB::getConn()->supportsTransactions()) {
+		if(DB::getConn()->supportsTransactions() && !$array_list) {
 			DB::getConn()->transactionEnd();
 		}
 	}
