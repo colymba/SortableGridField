@@ -151,7 +151,13 @@ class GridFieldSortableRows implements GridField_HTMLProvider, GridField_ActionP
 			$list=$list->where('"'.$this->sortColumn.'"=0');
 		}
 		else{
-			$max = max( $list->column($this->sortColumn) );
+			if ( count( $list->column($this->sortColumn) ) <= 0 )
+			{
+				$max = 0;
+			}
+			else {
+				$max = max( $list->column($this->sortColumn) );
+			}			
 			$list=$list->filter($this->sortColumn, 0);
 		}
 		
