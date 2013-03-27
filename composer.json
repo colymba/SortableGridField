@@ -1,12 +1,17 @@
 {
-	"name": "undefinedoffset/sortablegridfield",
-	"description": "Adds drag and drop functionality to SilverStripe 3.0's GridField",
+	"name": "colymba/SortableGridField",
+	"description": "undefinedoffset sortablegridfield with ArrayList",
 	"type": "silverstripe-module",
 	"keywords": ["silverstripe", "gridfield"],
 	"authors": [
 		{
 			"name": "Ed Chipman",
 			"homepage": "http://www.edchipman.ca",
+			"role": "Developer"
+		},
+		{
+			"name": "Thierry Francois",
+			"homepage": "http://colymba.com",
 			"role": "Developer"
 		}
 	],
