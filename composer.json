@@ -1,5 +1,5 @@
 {
-	"name": "colymba/SortableGridField",
+	"name": "colymba/sortablegridfield",
 	"description": "undefinedoffset sortablegridfield with ArrayList",
 	"type": "silverstripe-module",
 	"keywords": ["silverstripe", "gridfield"],
